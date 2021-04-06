@@ -5,7 +5,7 @@ const {startConnect} = require('./client');
 const {makePacket} = require('./util');
 let ITPpacket = require('./ITPResponse');
 let singleton = require('./Singleton');
-let must = require('./MUST');
+let must = require('./SRP');
 // minimist 可以把命令行传进来的参数转成对象
 // process.argv.slice(2)干掉前两个无用参数
 let {p} = require('minimist')(process.argv.slice(2));
@@ -54,10 +54,6 @@ function startServer() {
     const server = net.createServer();
     // 创建image socket
     const image_socket = net.createServer();
-    // 存放每一个peer的对等节点的peer socket
-
-    // let peerSocketObject = {s1: {}, s2: {}};
-
     // p = "127.0.0.1:61946";
     // 监听host上的port，等待对等节点加入或者自己成为一个服务器。
     server.listen(port, host, () => {
@@ -92,9 +88,6 @@ function startServer() {
                     // 存一下当前有哪些client连到我这里了
                     connectedPeerTable.push(data.toString());
                     // 对等节点主动记录与自己相连的对等节点的socket
-                    // let id;
-                    // id = Math.random();
-                    // peerSocketObject.s1[id] = sock;
                     peerSocketObject.push(sock);
                     console.log(`Connected from peer ${data.toString()}`);
                 } else {
@@ -108,9 +101,6 @@ function startServer() {
                     let { version, message_type, IC, searchID11, sender_ID_length, sender_ID, originating_peer_IP, originating_peer_port, images} = must.parseMUST(data);
                     for (let i = 0; i < connectedPeerTable.length; i++) {
                         searchIDList.push(searchID);
-                        // Object.keys(peerSocketObject.s1).forEach( k => {
-                        //     peerSocketObject.s1[k].write(must.makeMUST(images, 3, searchID, image_host, image_port));
-                        // });
                         peerSocketObject[i].write(must.makeMUST(images, 3, searchID, image_host, image_port));
                         searchID++;
                         peerSocketObject[i].end();
@@ -218,12 +208,6 @@ function startServer() {
                             if (!fs.existsSync("images/" + imagename)) {//资源不存在
                                 // 封装 search request packet
                                 // 发送给所有的对等节点
-                                // searchID = 0;
-                                // for (let i = 0; i < connectedPeerTable.length; i++) {
-                                //     searchIDList.push(searchID);
-                                //     peerSocketObject[i].write(must.makeMUST(images, 3, searchID, image_host, image_port));
-                                //     searchID++;
-                                // }
                                 [name, type] = imagename.split(".");
                                 let content = [0];
                                 imagesList.push({type, name, content});

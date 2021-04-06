@@ -3,7 +3,7 @@ let fs = require("fs");
 let open = require("open");
 let ITPpacket = require("./ITPRequest"); // uncomment this line after you run npm install command
 let ITPResponse = require("./ITPResponse");
-let must = require("./MUST");
+let must = require("./SRP");
 
 // Enter your code for the client functionality here
 
@@ -142,22 +142,6 @@ sock.on("end", () => {
     }else{
 
     }
-
-    // for (let i = 0, n = 8; i < (((header[1] & 0xf) << 1) | (header[2] >> 7)); i++) {
-    //     let type = data[n] >> 4;
-    //     let nameSize = ((data[n] & 0xf) << 8) | (data[n + 1]);
-    //     n += 2;
-    //     let image_size =
-    //     let name = data.slice(n, n + nameSize);
-    //     n += nameSize;
-    //     let size = (data[n] << 8) | data[n + 1];
-    //     n += 2;
-    //     let content = data.slice(n, n + size);
-    //     n += size;
-    //     let imageName = name + "." + getFileType(type);
-    //     fs.writeFileSync(imageName, content);
-    //     open(imageName);
-    // }
 });
 
 sock.on("close", () => {

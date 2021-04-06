@@ -1,6 +1,6 @@
 const net = require('net');
 const {parseMsg} = require('./util');
-let must = require('./MUST');
+let must = require('./SRP');
 let fs = require("fs");
 let ITPResponse = require('./ITPResponse');
 let singleton = require('./Singleton');
