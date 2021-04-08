@@ -21,6 +21,7 @@ let res = [];
 // let not_all = 0;
 var peerSocketObject = [];
 let datas = [];
+let all_images = [];
 
 //获取一个随机的端口
 function getRandomHostAndPort() {
@@ -142,7 +143,7 @@ function startServer() {
 
         // 客户端把需要查询的图像相关数据发送给服务器端时调用
         sock.on('data', data => {
-            if (parseInt(data[1] >> 4) === 0) {//数据包是查询数据包
+            if (parseInt(data[1] >> 4) === 0) {//数据包是客户端查询数据包
                 imagesocket = sock;
                 console.log("ITP request packet received:");
                 let images = [];
@@ -150,6 +151,8 @@ function startServer() {
                 let names = [];
                 let line = "";
                 let header = data.slice(0, 4);
+                res = [];
+                all_images = [];
                 for (let i = 0; i < data.length; i++) {
                     let byte = "";
                     for (let j = 7; j >= 0; j--) {
@@ -176,6 +179,7 @@ function startServer() {
                     let imageName = data.slice(n + 2, n + 2 + len).toString();
                     names.push(imageName);
                     images.push(imageName + '.' + getFileType(parseInt(data[n] / Math.pow(2, 4))));
+                    all_images.push(imageName + '.' + getFileType(parseInt(data[n] / Math.pow(2, 4))));
                     n += 2 + len;
                 }
 
@@ -256,18 +260,22 @@ function startServer() {
         });
 
         sock.on('end', () => {
-            console.log("ITP response packet received:");
-            let data = Buffer.concat(datas);
-            const {F, IC, images} = ITPpacket.parseITPResponsePacket(data);
-            images.forEach(image => {
-                if (!fs.existsSync("images/" + image.name + "." + image.type)) {
-                    fs.writeFileSync("images/" + image.name + "." + image.type, image.content);
-                    res.push(image);
+            // 返回相应数据包有两种情况：1、P2P网络中有节点返回部分资源;2、P2P网络中有节点返回全部资源
+            if (!all_images.every(allimage => fs.existsSync("images/" + allimage))) {
+                console.log("ITP response packet received:");
+                let data = Buffer.concat(datas);
+                const {F, IC, images} = ITPpacket.parseITPResponsePacket(data);
+                images.forEach(image => {
+                    if (!fs.existsSync("images/" + image.name + "." + image.type)) {
+                        fs.writeFileSync("images/" + image.name + "." + image.type, image.content);
+                        res.push(image);
+                    }
+                });
+
+                if (F === 1) {
+                    imagesocket.write(ITPpacket.getPacket(res, 1, 1, 0, Date.now()));
+                    imagesocket.end();
                 }
-            });
-            if (F === 1) {
-                imagesocket.write(ITPpacket.getPacket(res, 1, 1, 0, Date.now()));
-                imagesocket.end();
             }
         });
 
