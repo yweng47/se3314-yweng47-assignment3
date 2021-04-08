@@ -121,6 +121,12 @@ function startConnect(serverConfig, targetConfig, originIpPortArr = [], i = 0) {
                     if (images.length === res.length) {
                         // 搜索包中所有数据在本地都有，搜索结束
                         complete = 1;
+                        // 构造ITP响应数据包，并新建套接字传输数据，传输完毕关闭套接字
+                        // 创建sock，
+                        const transmission = new net.Socket();
+                        transmission.connect(originating_peer_port, originating_peer_IP);
+                        transmission.write(ITPResponse.getPacket(res, 1, complete, 0, Date.now()));
+                        transmission.end();
                     } else {
                         // 封装 search request packet
                         // 发送给所有的对等节点
@@ -128,13 +134,6 @@ function startConnect(serverConfig, targetConfig, originIpPortArr = [], i = 0) {
                             peerSocketObject[i].write(must.makeMUST(images, 3, searchID, originating_peer_IP, originating_peer_port));
                         }
                     }
-                    // 构造ITP响应数据包，并新建套接字传输数据，传输完毕关闭套接字
-                    // 创建sock，
-                    const transmission = new net.Socket();
-                    transmission.connect(originating_peer_port, originating_peer_IP);
-                    transmission.write(ITPResponse.getPacket(res, 1, complete, 0, Date.now()));
-                    transmission.end();
-                    // transmission.destroy();
                 }
             }
         }

@@ -12,7 +12,7 @@ let q = []; //Picture name
 let v = "7"; //Version
 let b = []; //Picture data
 let p = process.argv; //Get parameters
-// let p = "node GetImage -s 127.0.0.1:15999 -q rose.gif parrot.jpeg -v 7".split(" ");
+// let p = "node GetImage -s 127.0.0.1:33754 -q Rose.gif Parrot.jpeg -v 7".split(" ");
 const sock = new net.Socket();
 
 // 解析客户端的查询命令
@@ -137,7 +137,7 @@ sock.on("end", () => {
             fs.writeFileSync(imageName, Buffer.from(images[i].content));
             open(imageName);
         }
-        sock.end();
+        // sock.end();
         console.log("Disconnected from the server");
     }else{
 

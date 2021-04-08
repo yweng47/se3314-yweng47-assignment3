@@ -54,7 +54,7 @@ function startServer() {
     const server = net.createServer();
     // 创建image socket
     const image_socket = net.createServer();
-    // p = "127.0.0.1:61946";
+    // p = "127.0.0.1:38733";
     // 监听host上的port，等待对等节点加入或者自己成为一个服务器。
     server.listen(port, host, () => {
         // 如果p有值，说明此时有一个对等节点要加入P2P网络，走连接的逻辑，没有值就打印作为服务端，服务已经启动好了
@@ -76,13 +76,13 @@ function startServer() {
     server.on('connection', (sock) => {
         // 接受客户端发来的数据（如果有）
         sock.on('data', (data) => {
-            let pattIp=/(2(5[0-5]{1}|[0-4]\d{1})|[0-1]?\d{1,2})(\.(2(5[0-5]{1}|[0-4]\d{1})|[0-1]?\d{1,2})){3}/g;
-            if(data.toString() === "connect"){
+            let pattIp = /(2(5[0-5]{1}|[0-4]\d{1})|[0-1]?\d{1,2})(\.(2(5[0-5]{1}|[0-4]\d{1})|[0-1]?\d{1,2})){3}/g;
+            if (data.toString() === "connect") {//有节点要加入P2P网络
                 // 根据pdf协议封装数据包
                 const buf = makePacket({peerId, host, port, connectedPeerTable, connectedPeerTableSize});
                 // 发送给客户端
                 sock.write(buf);
-            }else if(data.toString().search(pattIp) === 0){
+            } else if (data.toString().search(pattIp) === 0) {//是否允许新节点加入P2P网络
                 //路由表没满
                 if (connectedPeerTable.length < connectedPeerTableSize) {
                     // 存一下当前有哪些client连到我这里了
@@ -94,16 +94,26 @@ function startServer() {
                     //路由表满了
                     console.log(`Peer table full: ${data.toString()} redirected`);
                 }
-            }else{
+            } else {//搜索数据包
                 let type = parseInt(data[1] >> 5);
-                if(type === 3){ // 请求图像查询
+                if (type === 3) { // 请求图像查询
                     let searchID = 0;
-                    let { version, message_type, IC, searchID11, sender_ID_length, sender_ID, originating_peer_IP, originating_peer_port, images} = must.parseMUST(data);
+                    let {
+                        version,
+                        message_type,
+                        IC,
+                        searchID11,
+                        sender_ID_length,
+                        sender_ID,
+                        originating_peer_IP,
+                        originating_peer_port,
+                        images
+                    } = must.parseMUST(data);
                     for (let i = 0; i < connectedPeerTable.length; i++) {
                         searchIDList.push(searchID);
                         peerSocketObject[i].write(must.makeMUST(images, 3, searchID, image_host, image_port));
                         searchID++;
-                        peerSocketObject[i].end();
+                        // peerSocketObject[i].end();
                     }
                 }
             }
@@ -128,12 +138,11 @@ function startServer() {
         // 获取当前时间
         let timestamp = Date.now();
         console.log(`${image_host}:${image_port} is connected at timestamp: ${timestamp}`);
+        // let images = [];
 
         // 客户端把需要查询的图像相关数据发送给服务器端时调用
         sock.on('data', data => {
-            if (parseInt(data[1] >> 4) === 1) {//数据包是响应数据包
-                datas.push(data);
-            } else {//数据包是查询数据包
+            if (parseInt(data[1] >> 4) === 0) {//数据包是查询数据包
                 imagesocket = sock;
                 console.log("ITP request packet received:");
                 let images = [];
@@ -156,7 +165,7 @@ function startServer() {
                     console.log(" " + line);
                 }
                 if ((header[0] >> 5) != 7 || header[3] != 0) {
-                    sock.end();
+                    // sock.end();
                     return;
                 }
 
@@ -200,8 +209,19 @@ function startServer() {
                 } else {//本地至少有一个拥有的资源
                     if (images.every(imagename => fs.existsSync("images/" + imagename))) {
                         //所有数据在第一次查询时就全部找到，直接返回响应数据包
+                        images.forEach(imagename => {
+                            // 读取本地图像资源到内存
+                            let content = fs.readFileSync("images/" + imagename);
+                            // 获取图像名字
+                            let name = imagename.substring(0, imagename.lastIndexOf('.'));
+                            // 获取图像扩展名
+                            let type = imagename.substring(imagename.lastIndexOf('.') + 1, imagename.length);
+
+                            res.push({type, name, content});
+                        });
                         sock.write(ITPpacket.getPacket(res, 1, (images.every(imagename => fs.existsSync("images/" + imagename))) ? 1 : 0, 0, Date.now()));
-                    }else{
+                        sock.end();
+                    } else {
                         // 资源不全，需要在P2P网络中进行搜索
                         let imagesList = [];
                         images.forEach(imagename => {
@@ -230,10 +250,12 @@ function startServer() {
                         sock.write(Buffer.concat(data));//未找到的响应数据包
                     }
                 }
+            } else {
+                datas.push(data);
             }
         });
 
-        sock.on('end',()=>{
+        sock.on('end', () => {
             console.log("ITP response packet received:");
             let data = Buffer.concat(datas);
             const {F, IC, images} = ITPpacket.parseITPResponsePacket(data);
