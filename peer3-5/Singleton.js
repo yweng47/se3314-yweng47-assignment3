@@ -3,8 +3,8 @@
 module.exports = {
     init: function() {
         // init function needs to be implemented here //
-        t = (Math.random() * 999 + 1) | 0;
-        sequenceNumber = (Math.random() * (1 << 15)) | 0;
+        const t = (Math.random() * 999 + 1) | 0;
+        const sequenceNumber = (Math.random() * (1 << 15)) | 0;
         setInterval(() => {
             t += 1;
         }, 10);
@@ -26,6 +26,4 @@ module.exports = {
     getTimestamp: function() {
         return t;
     }
-
-
 };

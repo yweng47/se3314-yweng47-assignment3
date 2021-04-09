@@ -55,7 +55,9 @@ function startServer() {
     const server = net.createServer();
     // 创建image socket
     const image_socket = net.createServer();
-    // p = "127.0.0.1:38733";
+    let start_time = Date.now();
+    let end_time = Date.now();
+    // p = "127.0.0.1:28273";
     // 监听host上的port，等待对等节点加入或者自己成为一个服务器。
     server.listen(port, host, () => {
         // 如果p有值，说明此时有一个对等节点要加入P2P网络，走连接的逻辑，没有值就打印作为服务端，服务已经启动好了
@@ -90,9 +92,11 @@ function startServer() {
                     connectedPeerTable.push(data.toString());
                     // 对等节点主动记录与自己相连的对等节点的socket
                     peerSocketObject.push(sock);
+                    console.log('\n');
                     console.log(`Connected from peer ${data.toString()}`);
                 } else {
                     //路由表满了
+                    console.log('\n');
                     console.log(`Peer table full: ${data.toString()} redirected`);
                 }
             } else {//搜索数据包
@@ -133,12 +137,14 @@ function startServer() {
 
     // image socket在特定端口和host上监听
     image_socket.listen(image_port, image_host);
-    console.log(`ImageDB server is started at timestamp: ${Date.now()} and is listening on ${image_host}:${image_port}`);
+    end_time = Date.now();
+    console.log(`ImageDB server is started at timestamp: ${end_time - start_time} and is listening on ${image_host}:${image_port}`);
     let imagesocket;
     image_socket.on('connection', (sock) => {
         // 获取当前时间
-        let timestamp = Date.now();
-        console.log(`${image_host}:${image_port} is connected at timestamp: ${timestamp}`);
+        end_time = Date.now();
+        let timestamp = end_time - start_time;
+        console.log(`Client-${image_port} is connected at timestamp: ${timestamp}`);
         // let images = [];
 
         // 客户端把需要查询的图像相关数据发送给服务器端时调用
@@ -204,7 +210,8 @@ function startServer() {
                         let content = [0];
                         imagesList.push({type, name, content});
                     });
-                    let pkt = ITPpacket.getPacket(imagesList, 0, 0, 0, Date.now());
+                    end_time = Date.now();
+                    let pkt = ITPpacket.getPacket(imagesList, 0, 0, 0, end_time - start_time);
                     let s = Buffer.from(host + ":" + port);
                     let data = [];
                     data.push(pkt);
@@ -223,7 +230,8 @@ function startServer() {
 
                             res.push({type, name, content});
                         });
-                        sock.write(ITPpacket.getPacket(res, 1, (images.every(imagename => fs.existsSync("images/" + imagename))) ? 1 : 0, 0, Date.now()));
+                        end_time = Date.now();
+                        sock.write(ITPpacket.getPacket(res, 1, (images.every(imagename => fs.existsSync("images/" + imagename))) ? 1 : 0, 0, end_time - start_time));
                         sock.end();
                     } else {
                         // 资源不全，需要在P2P网络中进行搜索
@@ -246,7 +254,8 @@ function startServer() {
                                 res.push({type, name, content});
                             }
                         });
-                        let pkt = ITPpacket.getPacket(imagesList, 0, 0, 0, Date.now());
+                        end_time = Date.now();
+                        let pkt = ITPpacket.getPacket(imagesList, 0, 0, 0, end_time - start_time);
                         let s = Buffer.from(host + ":" + port);
                         let data = [];
                         data.push(pkt);
@@ -273,14 +282,16 @@ function startServer() {
                 });
 
                 if (F === 1) {
-                    imagesocket.write(ITPpacket.getPacket(res, 1, 1, 0, Date.now()));
+                    end_time = Date.now();
+                    imagesocket.write(ITPpacket.getPacket(res, 1, 1, 0, end_time - start_time));
                     imagesocket.end();
                 }
             }
         });
 
         sock.on('close', () => {
-            console.log("Client-" + timestamp + " closed the connection\n");
+            end_time = Date.now();
+            console.log("Client-" + end_time - start_time + " closed the connection\n");
         });
     });
 

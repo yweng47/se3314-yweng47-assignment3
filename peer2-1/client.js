@@ -6,8 +6,10 @@ let ITPResponse = require('./ITPResponse');
 let singleton = require('./Singleton');
 
 function startConnect(serverConfig, targetConfig, originIpPortArr = [], i = 0) {
+    let start_time = Date.now();
+    let end_time = Date.now();
     // 当之前连接的服务端路由表满了，尝试其路由表里其他server的时候，如果到了最后一个都没连上，就退出
-    if (originIpPortArr.length === i && i !== 0) {
+    if (originIpPortArr.length === (i-1) && (i-1) !== 0) {
         console.log(`connection terminates`);
         return;
     }
@@ -36,7 +38,8 @@ function startConnect(serverConfig, targetConfig, originIpPortArr = [], i = 0) {
             if (version === 7) {
                 //如果对方路由表没满,打印作业要求的输出
                 if (type === 1) {
-                    console.log(`Connected to peer ${id}:${targetPort} at timestamp: ${Date.now()}`);
+                    end_time = Date.now();
+                    console.log(`Connected to peer ${id}:${targetPort} at timestamp: ${end_time - start_time}`);
                     console.log(`This peer address is ${host}:${port} located at ${peerId}`);
                     console.log(`Received ack from ${id}:${targetPort}`);
                     // 如果对方的路由表是空的,就不打印下面这句话
@@ -50,16 +53,17 @@ function startConnect(serverConfig, targetConfig, originIpPortArr = [], i = 0) {
                     //对方路由表满了,打印pdf要求的输出
                     client.write(`${host}:${port}`);
                     console.log(`Received ack from ${id}:${targetPort}`);
-                    console.log(`which is peered with: ${ipPortArr}`);
+                    console.log(`  which is peered with: ${ipPortArr}`);
+                    console.log('\n');
                     console.log(`The join has been declined; the auto-join process is performing ...`);
-                    client.end();
-                    i++;
+                    console.log('\n');
+                    // client.end();
                     // originIpPortArr长度为空说明这是第一次连接,否则就是重定向的连接
                     if (originIpPortArr.length === 0) {
                         // 尝试重新连接对方路由表里的其他server
-                        startConnect(serverConfig, ipPortArr[i][0].split(':'), ipPortArr, i);
+                        startConnect(serverConfig, ipPortArr[i++][0].split(':'), ipPortArr, i);
                     } else {
-                        startConnect(serverConfig, originIpPortArr[i][0].split(':'), originIpPortArr, i);
+                        startConnect(serverConfig, originIpPortArr[i++][0].split(':'), originIpPortArr, i);
                     }
                 }
             }
@@ -125,7 +129,8 @@ function startConnect(serverConfig, targetConfig, originIpPortArr = [], i = 0) {
                         // 创建sock，
                         const transmission = new net.Socket();
                         transmission.connect(originating_peer_port, originating_peer_IP);
-                        transmission.write(ITPResponse.getPacket(res, 1, complete, 0, Date.now()));
+                        end_time = Date.now();
+                        transmission.write(ITPResponse.getPacket(res, 1, complete, 0, end_time - start_time));
                         transmission.end();
                     } else {
                         // 封装 search request packet
