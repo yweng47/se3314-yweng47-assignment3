@@ -132,11 +132,18 @@ sock.on("end", () => {
 
     let {F, IC, images, responseType} = ITPResponse.parseITPResponsePacket(data);
     if(responseType === 1){
+        let imageName = [];
         for (let i = 0; i < IC; i++) {
-            let imageName = images[i].name + "." + images[i].type;
-            fs.writeFileSync(imageName, Buffer.from(images[i].content));
-            open(imageName);
+            imageName.push(images[i].name + "." + images[i].type);
+            fs.writeFileSync(images[i].name + "." + images[i].type, Buffer.from(images[i].content));
         }
+        // open images
+        (async () => {
+            // Opens the image in the default image viewer and waits for the opened app to finish.
+            for (let i = 0; i < imageName.length; i++) {
+                await open(imageName[i], { wait: true });
+            }
+        })();
         // sock.end();
         console.log("Disconnected from the server");
     }else{
